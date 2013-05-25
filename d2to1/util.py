@@ -159,8 +159,20 @@ def cfg_to_args(path='setup.cfg'):
                                  os.path.abspath(path))
     parser.read(path)
     config = {}
-    for section in parser.sections():
-        config[section] = dict(parser.items(section))
+    sections = parser.sections()
+    # Sorting ensures that non-os-targetted sections process first
+    sections.sort()
+    for section in sections:
+        if ":" in section:
+            (subsection, os_target) = section.split(':', 1)
+            if sys.platform != os_target:
+                continue
+            if section in config:
+                config[subsection].update(dict(parser.items(section)))
+            else:
+                config[subsection] = dict(parser.items(section))
+        else:
+            config[section] = dict(parser.items(section))
 
     # Run setup_hooks, if configured
     setup_hooks = has_get_option(config, 'global', 'setup_hooks')
